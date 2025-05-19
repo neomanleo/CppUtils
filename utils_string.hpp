@@ -1,5 +1,5 @@
-#ifndef LIB_HPP
-#define LIB_HPP
+#ifndef UTILS_STRING_HPP
+#define UTILS_STRING_HPP
 #include <cstddef>
 #include <cstring>
 #include <stdexcept>
