@@ -1,113 +1,164 @@
 #ifndef UTILS_STRING_HPP
 #define UTILS_STRING_HPP
-#include <cstddef>
-#include <cstring>
-#include <stdexcept>
+
 #include "macros.hpp"
-// WIP
+#include <cstring>
+#include <iostream>
+#include <stdexcept>
+#include <sys/types.h>
 
-#define LEN_TO_STR std::to_string(current_length)
-class UtilsString {
-
+class UtilsSimpleString {
 public:
-  UtilsString() {
-    current_length = 0;
-    capacity = (current_length + 1);
-
-    ALIGN_MOD8(capacity);
-    raw_data = new char[capacity];
-
-    std::memset(raw_data, 0, current_length);
-  };
-
-  UtilsString(const char *input_str) {
-    current_length = strlen(input_str);
-    capacity = (current_length + 1);
-    ALIGN_MOD8(capacity);
-    raw_data = new char[capacity];
-
-    std::memset(raw_data, 0, current_length);
-    std::memcpy(raw_data, input_str, current_length);
-  };
-
-  UtilsString(UtilsString &other) {
-    current_length = other.current_length;
-    capacity = other.capacity;
-
-    raw_data = new char[capacity];
-    memcpy(raw_data, other.raw_data, other.capacity);
-  };
-
-  ~UtilsString() { delete[] raw_data; };
-
-  char *data() { return raw_data; };
-
-  char &at(size_t pos) {
-    if (pos < current_length) {
-      return raw_data[pos];
-    } else {
-      throw std::out_of_range(".at() pos is " + std::to_string(pos) +
-                              " where length is " + LEN_TO_STR);
+  UtilsSimpleString(const char *string) {
+    if (string == nullptr) {
+      throw std::invalid_argument(
+          "UtilsSimpleString() constructor - passed in nullptr");
     }
+
+    length = std::strlen(string) + 1;
+    capacity = length;
+    ALIGN_MOD8(capacity);
+
+    r_data = new char[capacity];
+    std::memcpy(r_data, string, length);
+
+    std::cout << "CONSTRUCTED\n" << std::endl;
   };
+  UtilsSimpleString() {
+    length = 0;
+    capacity = 8;
+
+    r_data = new char[capacity];
+    std::cout << "DEFAULT CONSTRUCTED\n" << std::endl;
+  };
+  UtilsSimpleString(const UtilsSimpleString &other) {
+    length = other.length;
+    capacity = other.capacity;
+    r_data = new char[capacity];
+    std::memcpy(r_data, other.r_data, capacity);
+    std::cout << "COPY CONSTRUCTED\n" << std::endl;
+  };
+
+  UtilsSimpleString(UtilsSimpleString &&other) {
+    capacity = other.capacity;
+    length = other.length;
+    r_data = other.r_data;
+
+    other.capacity = 0;
+    other.length = 0;
+    other.r_data = nullptr;
+    std::cout << "MOVE CONSTRUCTED\n" << std::endl;
+  };
+
+  ~UtilsSimpleString() { delete[] r_data; };
+
+  char *data() { return r_data; }
 
   char *c_str() {
-    if (raw_data[current_length] != '\0') {
-      push_back('\0');
-      return data();
+    if (r_data[length] != '\0') {
+      r_data[length] = '\0';
     }
-    return data();
+    return r_data;
+  };
+
+  char &at(size_t index) {
+    if (index <= length) {
+      return r_data[index];
+    }
+    throw std::out_of_range(".at() - out of bounds index.");
   };
 
   void push_back(char c) {
-    if ((current_length + 1) < capacity) {
-      ++current_length;
-      raw_data[current_length] = c;
+    if ((length + 1) >= capacity) {
+      resize(64);
+    }
+    if (length > 0) {
+      --length;
+      r_data[length] = c;
+      ++length;
+      r_data[length] = '\0';
+      ++length;
     } else {
-      grow(1);
-      raw_data[current_length + 1] = c;
-      ++current_length;
+      r_data[length] = c;
+      ++length;
+      r_data[length] = '\0';
+      ++length;
     }
   };
 
-  UtilsString substr(size_t idx = 0, size_t size = 1) {
-    if ((idx >= current_length) || (size >= current_length) ||
-        ((idx + size) >= current_length)) {
-      throw std::out_of_range(".substr(), idx or size is >= " + LEN_TO_STR);
+  size_t size() { return length; };
+
+  UtilsSimpleString substr(size_t index, size_t index_offset) {
+    if ((index >= length) || (index_offset >= length)) {
+      throw std::out_of_range(".substr() - out of bounds index.");
     }
 
-    UtilsString ret;
-    for (size_t i = idx; i < (idx + size); ++i) {
-      ret.push_back(at(i));
+    UtilsSimpleString str;
+    for (size_t i = index; i <= (index_offset + index); ++i) {
+      str.push_back(r_data[i]);
     }
-    return ret;
+
+    return str;
   };
 
-  std::ostream &write(std::ostream &os) const
-{
-    return os;
+  void erase(size_t index) {
+    if (index < length) {
+      r_data[index] = '\0';
+      char *tmp = new char[capacity];
+      for (size_t i = 0, j = 0; i < length; ++i) {
+        if (r_data[i] != '\0') {
+          tmp[j] = r_data[i];
+          ++j;
+        }
+      }
+      delete[] r_data;
+      r_data = tmp;
+      --length;
+      r_data[length] = '\0';
+    } else {
+      throw std::out_of_range(".erase() - out of bounds index.");
+    }
+  };
+
+  void append(const char *string) {
+    if (string == nullptr) {
+      throw std::invalid_argument(".append() - passed in nullptr");
+    }
+    for (size_t i = 0; i < std::strlen(string); ++i) {
+      push_back(string[i]);
+    }
+  };
+
+  friend std::ostream &operator<<(std::ostream &stream,
+                                  UtilsSimpleString &string) {
+    stream << string.c_str();
+    return stream;
   };
 
 private:
-  size_t current_length;
   size_t capacity;
-  char *raw_data;
+  size_t length; // will always be the null terminator
+  char *r_data;
 
-  void grow(size_t minimum_add) {
-    size_t old_capacity = capacity;
-    capacity += minimum_add;
+  void resize(ssize_t change) {
+    if (change > 0) {
+      char *tmp = new char[capacity + static_cast<size_t>(change)];
+      std::memcpy(tmp, r_data, capacity);
 
-    ALIGN_MOD8(capacity);
+      delete[] r_data;
 
-    char *realloc_raw_data = new char[capacity];
-    memset(realloc_raw_data, 0, capacity);
-    memcpy(realloc_raw_data, raw_data, old_capacity);
+      r_data = tmp;
+      capacity += static_cast<size_t>(change);
+    } else {
+      capacity += static_cast<size_t>(change);
 
-    delete[] raw_data;
-    raw_data = realloc_raw_data;
-  }
+      char *tmp = new char[capacity];
+
+      std::memcpy(tmp, r_data, capacity);
+
+      delete[] r_data;
+      r_data = tmp;
+    }
+  };
 };
-// std::ostream &operator<<(std::ostream &os, UtilsString const &othre) {
-//   // return os << other
-// };
 #endif
