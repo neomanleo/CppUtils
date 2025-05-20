@@ -9,10 +9,10 @@ template <typename T> struct QueueElement {
   T data;
 };
 
-template <typename T> class Queue {
+template <typename T> class UtilsQueue {
 public:
-  Queue() = default;
-  ~Queue() {
+  UtilsQueue() = default;
+  ~UtilsQueue() {
     QueueElement<T> *curr = tail;
     while (curr != nullptr) {
       QueueElement<T> *next = curr->next;
