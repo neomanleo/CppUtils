@@ -1,6 +1,6 @@
-#ifndef THREAD_POOL_HPP
-#define THREAD_POOL_HPP
-// -
+#ifndef UTILS_THREAD_POOL_HPP
+#define UTILS_THREAD_POOL_HPP
+
 #include "utils_queue.hpp"
 #include <condition_variable>
 #include <cstdlib>
@@ -64,7 +64,7 @@ public:
 private:
   bool should_terminate = false;
 
-  Queue<std::function<void()>> m_job_queue;
+  UtilsQueue<std::function<void()>> m_job_queue;
   std::condition_variable m_job_queue_mutex_condition;
   std::mutex m_job_queue_mutex;
 
